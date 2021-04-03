@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "210808230909",
+    "project_id": "gupsikmon",
+    "storage_bucket": "gupsikmon.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210808230909:android:fa780ff329782925643f94",
+        "android_client_info": {
+          "package_name": "com.ssmegentle.gupsikmon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210808230909-rgikfen6sh9iflh2p7d8b8eg12sqsspl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdcRF0x3NEP-v-aC02dnkmJJgLAE0YIM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210808230909-rgikfen6sh9iflh2p7d8b8eg12sqsspl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

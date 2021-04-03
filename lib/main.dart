@@ -4,6 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:gupsikmon/ad_manager.dart';
+import 'package:firebase_admob/firebase_admob.dart';
+
 List<Post> parsePost(String reponseBody) {
   final parsed = json.decode(reponseBody);
   print("@@@@@@@@@");
@@ -15,7 +18,7 @@ List<Post> parsePost(String reponseBody) {
 
 Future<List<Post>> fetchPost() async {
   final response = await http.get(Uri.parse(
-      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530184&&MLSV_YMD=202003'));
+      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530184&&MLSV_YMD=20200325'));
   // print(response.body);
   if (response.statusCode == 200) {
     // 만약 서버로의 요청이 성공하면, JSON을 파싱합니다.
@@ -91,9 +94,33 @@ class Gupsik extends StatefulWidget {
 class _GupsikState extends State<Gupsik> {
   Future<Post> post;
 
+  BannerAd _bannerAd;
+
+  void _loadBannerAd() {
+    _bannerAd
+      ..load()
+      ..show(anchorType: AnchorType.bottom);
+  }
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize the AdMob SDK
+    FirebaseAdMob.instance.initialize(appId: AdManager.appId);
+
+    _bannerAd = BannerAd(
+      adUnitId: AdManager.bannerAdUnitId,
+      size: AdSize.fullBanner,
+    );
+
+    _loadBannerAd();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   @override
