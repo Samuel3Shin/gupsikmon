@@ -1,14 +1,13 @@
 import 'dart:io';
-import 'dart:io' show Platform;
 
 class AdManager {
   static String get appId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-3940256099942544~4354546703";
-      // return "ca-app-pub-2551410065860924~7363850433";
+      // return "ca-app-pub-3940256099942544~4354546703";
+      return "ca-app-pub-2551410065860924~7363850433";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-3940256099942544~2594085930";
-      // return "ca-app-pub-2551410065860924~2781252376";
+      // return "ca-app-pub-3940256099942544~2594085930";
+      return "ca-app-pub-2551410065860924~2781252376";
     } else {
       throw new UnsupportedError("Unsupported platform");
     }

@@ -7,10 +7,20 @@ import 'package:http/http.dart' as http;
 import 'package:gupsikmon/ad_manager.dart';
 import 'package:firebase_admob/firebase_admob.dart';
 
+const List<String> mealCodeToName = ["", "아침", "점심", "저녁"];
+const List<String> dateToWeekDay = [
+  "",
+  "월요일",
+  "화요일",
+  "수요일",
+  "목요일",
+  "금요일",
+  "토요일",
+  "일요일"
+];
+
 List<Post> parsePost(String reponseBody) {
   final parsed = json.decode(reponseBody);
-  print("@@@@@@@@@");
-  print(parsed);
   return parsed['mealServiceDietInfo'][1]['row']
       .map<Post>((json) => Post.fromJson(json))
       .toList();
@@ -18,8 +28,8 @@ List<Post> parsePost(String reponseBody) {
 
 Future<List<Post>> fetchPost() async {
   final response = await http.get(Uri.parse(
-      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530184&&MLSV_YMD=20200325'));
-  // print(response.body);
+      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530184&&MLSV_YMD=202104'));
+  // print(response.body)
   if (response.statusCode == 200) {
     // 만약 서버로의 요청이 성공하면, JSON을 파싱합니다.
     return parsePost(response.body);
@@ -33,35 +43,19 @@ class Post {
   final int mealCode;
   final String date;
   final String dish;
+  final String calorie;
+  final String nutrition;
 
-  // final String breakfast;
-
-  // final String lunch;
-  // final String dinner;
-
-  // final int userId;
-  // final int id;
-  // final String title;
-  // final String body;
-  //
-  //     for (int i = 0;
-  //     i <
-  //         int.parse(json['mealServiceDietInfo'][0]['head'][0]
-  //                 ['list_total_count']
-  //             .toString());
-  //     ++i) {
-  //   tmp = tmp +
-  //       json['mealServiceDietInfo'][1]['row'][i]['DDISH_NM'].toString() +
-  //       "\n";
-  // }
-
-  Post({this.mealCode, this.date, this.dish});
+  Post({this.mealCode, this.date, this.dish, this.calorie, this.nutrition});
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-        mealCode: int.parse(json['MMEAL_SC_CODE']),
-        date: json['MLSV_YMD'] as String,
-        dish: json['DDISH_NM'] as String);
+      mealCode: int.parse(json['MMEAL_SC_CODE']),
+      date: json['MLSV_YMD'] as String,
+      dish: json['DDISH_NM'] as String,
+      calorie: json['CAL_INFO'] as String,
+      nutrition: json['NTR_INFO'] as String,
+    );
   }
 }
 
@@ -95,7 +89,6 @@ class _GupsikState extends State<Gupsik> {
   Future<Post> post;
 
   BannerAd _bannerAd;
-
   void _loadBannerAd() {
     _bannerAd
       ..load()
@@ -136,7 +129,6 @@ class _GupsikState extends State<Gupsik> {
             if (snapshot.hasError) {
               print(snapshot.error);
             }
-
             // 기본적으로 로딩 Spinner를 보여줍니다.
             return snapshot.hasData
                 ? PostsList(posts: snapshot.data)
@@ -148,34 +140,111 @@ class _GupsikState extends State<Gupsik> {
   }
 }
 
+class CustomPostItem extends StatelessWidget {
+  const CustomPostItem({
+    Key key,
+    this.mealCode,
+    this.date,
+    this.dish,
+    this.calorie,
+    this.nutrition,
+  }) : super(key: key);
+
+  final int mealCode;
+  final String date;
+  final String dish;
+  final String calorie;
+  final String nutrition;
+
+  @override
+  Widget build(BuildContext context) {
+    var dishList = dish.split('<br/>');
+    var dishBuffer = new StringBuffer();
+
+    for (String item in dishList) {
+      var allergyNumList = item.split('.');
+      var firstOne = allergyNumList[0];
+      var menuName = firstOne;
+      var firstAllergyInfo = '';
+
+      // var digitsInFirstOne = '';
+      // if (firstOne.length >= 2 && firstOne[firstOne.length - 1] != ")") {
+      //   digitsInFirstOne =
+      //       firstOne.substring(firstOne.length - 2, firstOne.length);
+      // }
+
+      // if (digitsInFirstOne != "") {
+      //   firstAllergyInfo = digitsInFirstOne;
+      //   if (digitsInFirstOne.length == 1) {
+      //     menuName = firstOne.substring(0, firstOne.length - 1);
+      //   } else if (digitsInFirstOne.length == 2) {
+      //     menuName = firstOne.substring(0, firstOne.length - 2);
+      //   }
+      // } else {
+      //   menuName = firstOne;
+      // }
+
+      menuName = menuName.trim();
+
+      dishBuffer.write(menuName);
+      dishBuffer.write('\n');
+    }
+
+    DateTime dateToday = DateTime.parse(date);
+
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  mealCodeToName[mealCode],
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                ),
+              ),
+              Column(
+                children: [
+                  Text(date),
+                  Text(dateToWeekDay[dateToday.weekday]),
+                ],
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(dishBuffer.toString()),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('칼로리: $calorie'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PostsList extends StatelessWidget {
   final List<Post> posts;
-
   PostsList({Key key, this.posts}) : super(key: key);
 
   Widget _buildItemWidget(Post post) {
-    return ListTile(
-      onTap: () {
-        // Clipboard.setData(new ClipboardData(text: "${clip.title}"));
-        // Fluttertoast.showToast(
-        //     msg: "Copied",
-        //     toastLength: Toast.LENGTH_SHORT,
-        //     gravity: ToastGravity.BOTTOM,
-        //     timeInSecForIosWeb: 1,
-        //     backgroundColor: Colors.black45,
-        //     textColor: Colors.white,
-        //     fontSize: 16.0);
-      },
-      title: Text(
-        post.dish,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
+    return CustomPostItem(
+        mealCode: post.mealCode,
+        date: post.date,
+        dish: post.dish,
+        calorie: post.calorie,
+        nutrition: post.nutrition);
   }
 
   @override
   Widget build(BuildContext context) {
+    posts.sort((a, b) => a.date.compareTo(b.date));
+
+    //TODO: 지난 날은 지워야한다. or 오늘 날짜로 스크롤을 내려야한다.
     return ListView.separated(
       itemCount: posts.length,
       itemBuilder: (BuildContext context, int index) {
