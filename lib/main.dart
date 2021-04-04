@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:gupsikmon/ad_manager.dart';
 import 'package:firebase_admob/firebase_admob.dart';
+
+import 'package:csv/csv.dart';
 
 const List<String> mealCodeToName = ["", "아침", "점심", "저녁"];
 const List<String> dateToWeekDay = [
@@ -88,6 +91,17 @@ class Gupsik extends StatefulWidget {
 class _GupsikState extends State<Gupsik> {
   Future<Post> post;
 
+  List<List<dynamic>> data = [];
+
+  // This function is triggered when the floating button is pressed
+  void _loadCSV() async {
+    final _rawData = await rootBundle.loadString("assets/school_info.csv");
+    List<List<dynamic>> _listData = CsvToListConverter().convert(_rawData);
+    setState(() {
+      data = _listData;
+    });
+  }
+
   BannerAd _bannerAd;
   void _loadBannerAd() {
     _bannerAd
@@ -98,6 +112,8 @@ class _GupsikState extends State<Gupsik> {
   @override
   void initState() {
     super.initState();
+
+    _loadCSV();
 
     // Initialize the AdMob SDK
     FirebaseAdMob.instance.initialize(appId: AdManager.appId);
@@ -119,22 +135,20 @@ class _GupsikState extends State<Gupsik> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CupertinoNavigationBar(
-        middle: Text('안산동산고등학교'),
+      appBar: AppBar(
+        title: Text('안산동산고등학교'),
       ),
-      body: Center(
-        child: FutureBuilder<List<Post>>(
-          future: fetchPost(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              print(snapshot.error);
-            }
-            // 기본적으로 로딩 Spinner를 보여줍니다.
-            return snapshot.hasData
-                ? PostsList(posts: snapshot.data)
-                : CircularProgressIndicator();
-          },
-        ),
+      body: FutureBuilder<List<Post>>(
+        future: fetchPost(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print(snapshot.error);
+          }
+          // 기본적으로 로딩 Spinner를 보여줍니다.
+          return snapshot.hasData
+              ? PostsList(posts: snapshot.data)
+              : CircularProgressIndicator();
+        },
       ),
     );
   }
@@ -166,23 +180,6 @@ class CustomPostItem extends StatelessWidget {
       var firstOne = allergyNumList[0];
       var menuName = firstOne;
       var firstAllergyInfo = '';
-
-      // var digitsInFirstOne = '';
-      // if (firstOne.length >= 2 && firstOne[firstOne.length - 1] != ")") {
-      //   digitsInFirstOne =
-      //       firstOne.substring(firstOne.length - 2, firstOne.length);
-      // }
-
-      // if (digitsInFirstOne != "") {
-      //   firstAllergyInfo = digitsInFirstOne;
-      //   if (digitsInFirstOne.length == 1) {
-      //     menuName = firstOne.substring(0, firstOne.length - 1);
-      //   } else if (digitsInFirstOne.length == 2) {
-      //     menuName = firstOne.substring(0, firstOne.length - 2);
-      //   }
-      // } else {
-      //   menuName = firstOne;
-      // }
 
       menuName = menuName.trim();
 
