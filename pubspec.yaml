@@ -26,6 +26,8 @@ dependencies:
   http: ^0.13.1
   firebase_admob: ^0.9.3
   csv: ^5.0.0
+  shared_preferences: ^0.5.2
+  fluttertoast: ^7.1.6
 
 
   # The following adds the Cupertino Icons font to your application.

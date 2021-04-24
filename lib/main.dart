@@ -4,11 +4,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import 'package:gupsikmon/ad_manager.dart';
 import 'package:firebase_admob/firebase_admob.dart';
 
 import 'package:csv/csv.dart';
+
+const DISTRICT_KEY = 'DISTRICT';
+const SCHOOL_CODE_KEY = 'SCHOOL_CODE';
+const SCHOOL_NAME_KEY = 'SCHOOL_NAME';
 
 const List<String> mealCodeToName = ["", "아침", "점심", "저녁"];
 const List<String> dateToWeekDay = [
@@ -30,8 +36,15 @@ List<Post> parsePost(String reponseBody) {
 }
 
 Future<List<Post>> fetchPost() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  var district = prefs.getString(DISTRICT_KEY);
+  var schoolCode = prefs.getString('SCHOOL_CODE');
   final response = await http.get(Uri.parse(
-      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530184&&MLSV_YMD=202104'));
+      'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=82ab38c7fd554ac7935f6c059c50f380&Type=json&&ATPT_OFCDC_SC_CODE=' +
+          district +
+          '&SD_SCHUL_CODE=' +
+          schoolCode +
+          '&&MLSV_YMD=202104'));
   // print(response.body)
   if (response.statusCode == 200) {
     // 만약 서버로의 요청이 성공하면, JSON을 파싱합니다.
@@ -90,12 +103,14 @@ class Gupsik extends StatefulWidget {
 
 class _GupsikState extends State<Gupsik> {
   Future<Post> post;
-
   List<List<dynamic>> data = [];
+  Future<SharedPreferences> prefs = SharedPreferences.getInstance();
 
   // This function is triggered when the floating button is pressed
+  // TODO: 학교 정보는 학교 등록하는 상황 아니면, 굳이 먼저 load하지 않도록 해야 한다.
   void _loadCSV() async {
-    final _rawData = await rootBundle.loadString("assets/school_info.csv");
+    final _rawData =
+        await rootBundle.loadString("assets/school_info_20210424.csv");
     List<List<dynamic>> _listData = CsvToListConverter().convert(_rawData);
     setState(() {
       data = _listData;
@@ -136,6 +151,14 @@ class _GupsikState extends State<Gupsik> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        actions: <Widget>[
+          IconButton(
+            onPressed: () {
+              showSearch(context: context, delegate: Search(this, data));
+            },
+            icon: Icon(Icons.search),
+          ),
+        ],
         title: Text('안산동산고등학교'),
       ),
       body: FutureBuilder<List<Post>>(
@@ -151,6 +174,16 @@ class _GupsikState extends State<Gupsik> {
         },
       ),
     );
+  }
+
+  void addSchoolInfoToSF(
+      String district, String schoolCode, String schoolName) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      prefs.setString(DISTRICT_KEY, district);
+      prefs.setString(SCHOOL_CODE_KEY, schoolCode);
+      prefs.setString(SCHOOL_NAME_KEY, schoolName);
+    });
   }
 }
 
@@ -249,6 +282,84 @@ class PostsList extends StatelessWidget {
       },
       separatorBuilder: (context, index) {
         return const Divider(height: 0);
+      },
+    );
+  }
+}
+
+class Search extends SearchDelegate {
+  final _GupsikState _gupsikState;
+  final List<List<dynamic>> listExample;
+  Search(this._gupsikState, this.listExample);
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return <Widget>[
+      IconButton(
+        icon: Icon(Icons.close),
+        onPressed: () {
+          query = "";
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  String selectedResult;
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return Container(
+      child: Center(
+        child: Text(selectedResult),
+      ),
+    );
+  }
+
+  List<List<dynamic>> recentList = [];
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    List<List<dynamic>> suggestionList = [];
+    query.isEmpty
+        ? suggestionList = recentList
+        : suggestionList.addAll(listExample
+            .where((element) => element.elementAt(2).contains(query)));
+
+    return ListView.builder(
+      itemCount: suggestionList.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          onTap: () {
+            Fluttertoast.showToast(
+                msg: '학교 정보가 ' +
+                    suggestionList[index][2].toString() +
+                    '로 등록되었습니다.',
+                toastLength: Toast.LENGTH_LONG,
+                gravity: ToastGravity.TOP,
+                timeInSecForIosWeb: 1,
+                backgroundColor: Colors.black45,
+                textColor: Colors.white,
+                fontSize: 16.0);
+
+            _gupsikState.addSchoolInfoToSF(
+                suggestionList[index][0].toString(),
+                suggestionList[index][1].toString(),
+                suggestionList[index][2].toString());
+          },
+          title: Text(
+            suggestionList[index].elementAt(2),
+          ),
+        );
       },
     );
   }
